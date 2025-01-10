@@ -5,6 +5,7 @@ import fitz # PyMuPDF
 from datetime import datetime
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
+import base64
 
 conn = st.connection("snowflake")
 
@@ -154,17 +155,12 @@ div[data-testid="column"] > div > div[data-testid="stVerticalBlock"] > div.eleme
     )
 
 def display_pdf(file_path):
-    # Open the PDF file
-    pdf_document = fitz.open(file_path)
-    # Iterate through each page
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        # Convert page to image
-        pix = page.get_pixmap()
-        # Convert image to bytes
-        img_bytes = pix.tobytes("png")
-        # Display image in Streamlit
-        st.image(img_bytes)
+    # Leer el archivo PDF y codificarlo en base64
+    with open(file_path, "rb") as f:
+        base64_pdf = base64.b64encode(f.read()).decode("utf-8")
+    # Crear un iframe para mostrar el PDF
+    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="500px" style="border:none;"></iframe>'
+    st.markdown(pdf_display, unsafe_allow_html=True)
 
 def formulario():
     with stylable_container(
@@ -215,19 +211,21 @@ def formulario():
             telefono = my_grid.text_input("Número de Teléfono:", "", key="telefono")
             preferencias = my_grid.selectbox("Preferencias de Contacto:", ["Email", "Teléfono", "WhatsApp"], key="preferencias")
 
-            with st.expander("Términos y Condiciones"):
-                st.markdown(
-                    """
-                    <style>
-                    .streamlit-expanderContent {
-                        overflow: auto;
-                        max-height: 400px;
-                    }
-                    </style>
-                    """,
-                    unsafe_allow_html=True
-                )
-                display_pdf(r"files/Plataforma Administración Consentimiento.pdf")
+            with st.container():
+                with st.expander("Términos y Condiciones"):
+                    st.markdown(
+                        """
+                        <style>
+                        .streamlit-expander .streamlit-expanderContent {
+                            max-height: 400px;
+                            overflow-y: auto;
+                            user-select: none;
+                        }
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    display_pdf(r"files/Plataforma Administración Consentimiento.pdf")
 
             with stylable_container(
                 key="botonForm",
@@ -259,7 +257,7 @@ def formulario():
                         st.success("Formulario enviado correctamente.")
 
                         # Obtener la fecha actual
-                        fecha_aceptacion = datetime.now().strftime("%Y-%m-%d")
+                        fecha_aceptacion = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                         # Insertar los datos en la base de datos
                         insert = """
