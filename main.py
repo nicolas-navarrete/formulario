@@ -154,13 +154,32 @@ div[data-testid="column"] > div > div[data-testid="stVerticalBlock"] > div.eleme
         parent_dg=container, spec=list(spec), gap=gap, repeat=True
     )
 
-def display_pdf(file_path):
-    # Leer el archivo PDF y codificarlo en base64
-    with open(file_path, "rb") as f:
-        base64_pdf = base64.b64encode(f.read()).decode("utf-8")
-    # Crear un iframe para mostrar el PDF
-    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="500px" style="border:none;"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)
+def extract_pdf_text(file_path):
+    """
+    Extrae el texto de un archivo PDF.
+
+    Args:
+        file_path (str): Ruta al archivo PDF.
+
+    Returns:
+        str: Texto extraído del PDF.
+    """
+    pdf_text = ""
+    with fitz.open(file_path) as pdf_document:
+        for page in pdf_document:
+            pdf_text += page.get_text()
+
+    return pdf_text
+
+def display_pdf_as_text(file_path):
+    """
+    Extrae y muestra el texto de un archivo PDF.
+
+    Args:
+        file_path (str): Ruta al archivo PDF.
+    """
+    pdf_text = extract_pdf_text(file_path)
+    st.text_area("", pdf_text, height=500)
 
 def formulario():
     with stylable_container(
@@ -213,19 +232,8 @@ def formulario():
 
             with st.container():
                 with st.expander("Términos y Condiciones"):
-                    st.markdown(
-                        """
-                        <style>
-                        .streamlit-expander .streamlit-expanderContent {
-                            max-height: 400px;
-                            overflow-y: auto;
-                            user-select: none;
-                        }
-                        </style>
-                        """,
-                        unsafe_allow_html=True
-                    )
-                    display_pdf(r"files/Plataforma Administración Consentimiento.pdf")
+                    # Muestra el texto del PDF
+                    display_pdf_as_text(r"files/Plataforma Administración Consentimiento.pdf")
 
             with stylable_container(
                 key="botonForm",
